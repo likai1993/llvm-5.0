@@ -162,6 +162,8 @@ public:
   /// Implemented in AMDGPUMCInstLower.cpp
   void EmitInstruction(const MachineInstr *MI) override;
 
+  //bool mem_access_check(const MachineInstr *MI) override;
+
   void EmitFunctionBodyStart() override;
 
   void EmitFunctionEntryLabel() override;

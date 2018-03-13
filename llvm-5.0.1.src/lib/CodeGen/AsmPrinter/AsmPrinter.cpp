@@ -106,7 +106,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-
+#include <iostream>
 using namespace llvm;
 
 #define DEBUG_TYPE "asm-printer"
@@ -974,13 +974,19 @@ void AsmPrinter::EmitFunctionBody() {
 
   bool ShouldPrintDebugScopes = MMI->hasDebugInfo();
 
+  MF->dump();
   // Print out code for the function.
   bool HasAnyRealCode = false;
   int NumInstsInFunction = 0;
   for (auto &MBB : *MF) {
     // Print a label for the basic block.
-    EmitBasicBlockStart(MBB);
+        int bb_num = MBB.getNumber();
+	int mem_access_count = 0;
+	EmitBasicBlockStart(MBB);
     for (auto &MI : MBB) {
+
+      // count mem access
+      if (mem_access_check(&MI)) mem_access_count++;
 
       // Print the assembly for the instruction.
       if (!MI.isPosition() && !MI.isImplicitDef() && !MI.isKill() &&
@@ -1044,6 +1050,7 @@ void AsmPrinter::EmitFunctionBody() {
       }
     }
 
+    std::cout << "BB " << bb_num << ": mem access count:" << mem_access_count << "\n";
     EmitBasicBlockEnd(MBB);
   }
 

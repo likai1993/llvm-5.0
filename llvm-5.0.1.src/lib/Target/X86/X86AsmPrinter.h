@@ -114,6 +114,8 @@ public:
 
   void EmitEndOfAsmFile(Module &M) override;
 
+  bool mem_access_check(const MachineInstr *MI) override;
+
   void EmitInstruction(const MachineInstr *MI) override;
 
   void EmitBasicBlockEnd(const MachineBasicBlock &MBB) override {

@@ -40,6 +40,8 @@ namespace llvm {
     bool isBlockOnlyReachableByFallthrough(
                                    const MachineBasicBlock *MBB) const override;
 
+    //bool mem_access_check (const MachineInstr *MI) override; 
+
     void EmitInstruction(const MachineInstr *MI) override;
 
     void HexagonProcessInstruction(MCInst &Inst,
