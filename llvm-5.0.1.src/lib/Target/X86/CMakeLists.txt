@@ -36,6 +36,7 @@ endif()
 
 set(sources
   X86AsmPrinter.cpp
+  X86CacheAnalysis.cpp
   X86CallFrameOptimization.cpp
   X86CmovConversion.cpp
   X86ExpandPseudo.cpp

@@ -1375,7 +1375,7 @@ static void printConstant(const Constant *COp, raw_ostream &CS) {
   bool sb_call = false;
   bool insert_xend = false;
 
-  /*int  mem_access_count = 0;*/
+  int memAccessCount = 0;
 
 bool X86AsmPrinter::mem_access_check(const MachineInstr *MI)
 {
@@ -1498,9 +1498,7 @@ void X86AsmPrinter::EmitInstruction(const MachineInstr *MI) {
   // if (sgx_debug) std::cout << "X86 EmitInstruction::Entry!"<< "\n";
    if (TM.Options.MCOptions.BASELINE2) {
 	sgx_tsx = true; 
-	//if (mem_access_check(MI)) mem_access_count++; 
-	//if (sgx_debug) std::cout << "mem_access_count: " << mem_access_count << "\n";
-   // Whitelisting functions
+	// Whitelisting functions
    const Function *F = MF->getFunction();
    const MachineBasicBlock *MBB = MI->getParent();
    const BasicBlock *B = MBB->getBasicBlock();
@@ -1523,10 +1521,10 @@ void X86AsmPrinter::EmitInstruction(const MachineInstr *MI) {
 			if (MI->getOperand(0).isMBB()) {
        			   const MachineBasicBlock *target_mbb = MI->getOperand(0).getMBB();
          		   int target_mbb_num = target_mbb->getNumber();
-          		   if (sgx_debug) std::cout << "The branch target is basicblock: " << target_mbb->getName().str() << "\n";
-			   const MachineLoop *target_loop  = MLI->getLoopFor(target_mbb);
+          		   if (sgx_debug) std::cout << "loop header: The branch target is basicblock: " << target_mbb->getName().str() << "\n";
+                            //const MachineLoop *target_loop  = MLI->getLoopFor(target_mbb);
 			   //if ( !target_loop || (target_loop != loop)) {
- 				MCSymbol *sym_target = OutContext.getOrCreateSymbol(Twine(MF->getName()) + "." + Twine(target_mbb_num));
+ 				/*MCSymbol *sym_target = OutContext.getOrCreateSymbol(Twine(MF->getName()) + "." + Twine(target_mbb_num));
   
                 		EmitAndCountInstruction(MCInstBuilder(X86::LEA64r)
                   		.addOperand(MCOperand::createReg(X86::R15))
@@ -1546,12 +1544,12 @@ void X86AsmPrinter::EmitInstruction(const MachineInstr *MI) {
                 		EmitAndCountInstruction(MCInstBuilder(MI->getOpcode())
                   		.addExpr(MCSymbolRefExpr::create(sym, OutContext)));
   
-                		return;
+                		return;*/
 		            //}
 		        }
 		}else{
 			MachineBasicBlock::const_iterator MBBI(MI);
-                     if (MI == MBB->begin()) {
+                     if (MI == MBB->begin() && memAccessCount != 0 ) {
                         //if last loop body ended with no branch, add count iteration before emit loop header bb 
                         int target_mbb_num = MBB->getNumber();                  
                         MCSymbol *sym_target = OutContext.getOrCreateSymbol(Twine(MF->getName()) + "." + Twine(target_mbb_num));        
@@ -1560,7 +1558,7 @@ void X86AsmPrinter::EmitInstruction(const MachineInstr *MI) {
 
                         EmitAndCountInstruction(MCInstBuilder(X86::CMP64rr)
    			.addOperand(MCOperand::createReg(X86::R14))
-	                .addOperand(MCOperand::createImm(7)));
+	                .addOperand(MCOperand::createImm(memAccessCount)));
 
                          EmitAndCountInstruction(MCInstBuilder(X86::LEA64r)        
                                 .addOperand(MCOperand::createReg(X86::R15))               
@@ -1572,13 +1570,13 @@ void X86AsmPrinter::EmitInstruction(const MachineInstr *MI) {
                 
                                 MCSymbol *sym; 
                                 if (sgx_tsx) {
-                                         sym = OutContext.getOrCreateSymbol("sb.entry.end");
+                                         sym = OutContext.getOrCreateSymbol("sb.entry");
                                 } else {
                                         sym = OutContext.getOrCreateSymbol("sb_no_tsx.entry");
                                 }
                                 EmitAndCountInstruction(MCInstBuilder(X86::JGE_1)
                                 .addExpr(MCSymbolRefExpr::create(sym, OutContext)));    
-          		
+          		        memAccessCount = 0;
 	//			OutStreamer->EmitLabel(sym_target);
 				//              insert_jmp = false;        
                       }  
@@ -1600,13 +1598,16 @@ void X86AsmPrinter::EmitInstruction(const MachineInstr *MI) {
                 EmitAndCountInstruction(MCInstBuilder(X86::MOV64rr)
                 .addOperand(MCOperand::createReg(X86::R14))    
 		.addOperand(MCOperand::createImm(0)));
+		memAccessCount = CA.memAccessCountBasicBlock(MBB) + 1;
+                           if (sgx_debug) std::cout << "Basicblock " << MBB->getName().str() << " instr mem access number:" << memAccessCount << "\n";
+
         }
     }
 
 
   }
 // For the remaining branch, make sure the target is own-defined label.
-  if (MI->isBranch()) {
+  if (!loop && MI->isBranch()) {
      if (sgx_debug) std::cout << "Found branch in " << MBB->getName().str() << "\n";
          if (MI->getOperand(0).isMBB()) {
            const MachineBasicBlock *target_mbb = MI->getOperand(0).getMBB();
@@ -1628,7 +1629,7 @@ void X86AsmPrinter::EmitInstruction(const MachineInstr *MI) {
                                 MCSymbol *sym;
                                 if (sgx_tsx) {
                                          insert_xend = true;
-                                         sym = OutContext.getOrCreateSymbol("sb.entry");
+                                         sym = OutContext.getOrCreateSymbol("sb.entry.ex");
 				}
                                 EmitAndCountInstruction(MCInstBuilder(MI->getOpcode())
                                 .addExpr(MCSymbolRefExpr::create(sym, OutContext)));
@@ -1637,9 +1638,10 @@ void X86AsmPrinter::EmitInstruction(const MachineInstr *MI) {
          }
     }
 
-  if (MI == MBB->begin() && insert_xend){
+  if (!loop && MI == MBB->begin() && insert_xend){
 	EmitAndCountInstruction(MCInstBuilder(X86::XEND));
-  }
+        insert_xend = false;
+   }
 
 }
 // end baseline2 

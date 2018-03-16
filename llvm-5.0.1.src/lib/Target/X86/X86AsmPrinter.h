@@ -15,6 +15,7 @@
 #include "llvm/CodeGen/FaultMaps.h"
 #include "llvm/CodeGen/StackMaps.h"
 #include "llvm/Target/TargetMachine.h"
+#include "X86CacheAnalysis.h"
 
 // Implemented in X86MCInstLower.cpp
 namespace {
@@ -30,6 +31,9 @@ class LLVM_LIBRARY_VISIBILITY X86AsmPrinter : public AsmPrinter {
   StackMaps SM;
   FaultMaps FM;
   std::unique_ptr<MCCodeEmitter> CodeEmitter;
+
+  // cache mem analysis
+  X86CacheAnalysis CA;
 
   // This utility class tracks the length of a stackmap instruction's 'shadow'.
   // It is used by the X86AsmPrinter to ensure that the stackmap shadow
@@ -102,7 +106,7 @@ class LLVM_LIBRARY_VISIBILITY X86AsmPrinter : public AsmPrinter {
 public:
   explicit X86AsmPrinter(TargetMachine &TM,
                          std::unique_ptr<MCStreamer> Streamer)
-      : AsmPrinter(TM, std::move(Streamer)), SM(*this), FM(*this) {}
+      : AsmPrinter(TM, std::move(Streamer)), SM(*this), FM(*this), CA() {}
 
   StringRef getPassName() const override {
     return "X86 Assembly Printer";

@@ -49,6 +49,14 @@ using namespace llvm;
 bool X86AsmPrinter::runOnMachineFunction(MachineFunction &MF) {
   Subtarget = &MF.getSubtarget<X86Subtarget>();
 
+  if (TM.Options.MCOptions.BASELINE2) {
+      // T-SGX: Initialize cache analysis module
+      CA.doInitialize(MF, *this);
+  
+      // T-SGX: Perform cache analysis
+      CA.doAnalysis();
+    } 
+
   SMShadowTracker.startFunction(MF);
   CodeEmitter.reset(TM.getTarget().createMCCodeEmitter(
       *MF.getSubtarget().getInstrInfo(), *MF.getSubtarget().getRegisterInfo(),
