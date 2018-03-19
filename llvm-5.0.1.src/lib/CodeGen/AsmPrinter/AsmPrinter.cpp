@@ -1006,7 +1006,6 @@ void AsmPrinter::EmitFunctionBody() {
 
       if (isVerbose())
         emitComments(MI, OutStreamer->GetCommentOS(), this);
-
       switch (MI.getOpcode()) {
       case TargetOpcode::CFI_INSTRUCTION:
         emitCFIInstruction(MI);

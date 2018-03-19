@@ -388,7 +388,7 @@ public:
     llvm_unreachable("EmitInstruction not implemented");
   }
 
-  virtual bool mem_access_check(const MachineInstr *) {}
+  virtual bool mem_access_check(const MachineInstr *) {return false;}
 
   /// Return the symbol for the specified constant pool entry.
   virtual MCSymbol *GetCPISymbol(unsigned CPID) const;
